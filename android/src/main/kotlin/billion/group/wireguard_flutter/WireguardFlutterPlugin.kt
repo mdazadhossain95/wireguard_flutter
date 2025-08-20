@@ -290,29 +290,33 @@ class WireguardFlutterPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         }
     }
 
-    private fun getDownloadData(result: Result) {
-        scope.launch(Dispatchers.IO) {
-            try {
-                val downloadData = futureBackend.await().getTransferData(tunnel(tunnelName)).rxBytes
-                flutterSuccess(result, downloadData)
-            } catch (e: Throwable) {
-                Log.e(TAG, "getDownloadData - ERROR - ${e.message}")
-                flutterError(result, e.message.toString())
-            }
+  // 1) Replace getDownloadData(...)
+private fun getDownloadData(result: Result) {
+    scope.launch(Dispatchers.IO) {
+        try {
+            val stats = futureBackend.await().getStatistics(tunnel(tunnelName))
+            val downloadData = stats.totalRx()  // bytes received
+            flutterSuccess(result, downloadData)
+        } catch (e: Throwable) {
+            Log.e(TAG, "getDownloadData - ERROR - ${e.message}")
+            flutterError(result, e.message.toString())
         }
     }
+}
 
-    private fun getUploadData(result: Result) {
-        scope.launch(Dispatchers.IO) {
-            try {
-                val uploadData = futureBackend.await().getTransferData(tunnel(tunnelName)).txBytes
-                flutterSuccess(result, uploadData)
-            } catch (e: Throwable) {
-                Log.e(TAG, "getUploadData - ERROR - ${e.message}")
-                flutterError(result, e.message.toString())
-            }
+// 2) Replace getUploadData(...)
+private fun getUploadData(result: Result) {
+    scope.launch(Dispatchers.IO) {
+        try {
+            val stats = futureBackend.await().getStatistics(tunnel(tunnelName))
+            val uploadData = stats.totalTx()    // bytes sent
+            flutterSuccess(result, uploadData)
+        } catch (e: Throwable) {
+            Log.e(TAG, "getUploadData - ERROR - ${e.message}")
+            flutterError(result, e.message.toString())
         }
     }
+}
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
